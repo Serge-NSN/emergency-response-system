@@ -12,6 +12,7 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
+import LandingPage from './pages/LandingPage';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ 
   children, 
@@ -28,7 +29,7 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = 
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
 
   if (roles && !roles.includes(user.role)) {
@@ -66,6 +67,7 @@ const App: React.FC = () => {
           <div className="App">
             <Routes>
               {/* Public routes */}
+              <Route path="/landing" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               
@@ -117,12 +119,23 @@ const App: React.FC = () => {
                   </AppLayout>
                 </PrivateRoute>
               } />
+              {/* Catch-all route for unknown paths */}
+              <Route path="*" element={<RedirectToProperLanding />} />
             </Routes>
           </div>
         </Router>
       </NotificationProvider>
     </AuthProvider>
   );
+};
+
+const RedirectToProperLanding: React.FC = () => {
+  const { user } = useAuth();
+  if (user) {
+    return <Navigate to="/" replace />;
+  } else {
+    return <Navigate to="/landing" replace />;
+  }
 };
 
 export default App;
