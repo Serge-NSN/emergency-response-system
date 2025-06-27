@@ -11,7 +11,17 @@ import {
   FireIcon,
   BoltIcon,
   HeartIcon,
-  ShieldExclamationIcon
+  ShieldExclamationIcon,
+  TruckIcon,
+  UserGroupIcon,
+  SignalIcon,
+  WifiIcon,
+  CogIcon,
+  StarIcon,
+  ArrowRightIcon,
+  PlayIcon,
+  PauseIcon,
+  StopIcon
 } from '@heroicons/react/24/outline';
 import { EmergencyReport, EmergencyType, EmergencyPriority } from '../types';
 
@@ -24,6 +34,7 @@ const HomePage: React.FC = () => {
     resolvedToday: 0,
     averageResponseTime: 0
   });
+  const [isAnimating, setIsAnimating] = useState(true);
 
   // Mock data for demonstration
   useEffect(() => {
@@ -44,7 +55,7 @@ const HomePage: React.FC = () => {
         description: 'Large fire reported in commercial district',
         location: { latitude: 5.9597, longitude: 10.1459 },
         reporter: { id: '1', name: 'John Doe' },
-        createdAt: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+        createdAt: new Date(Date.now() - 1000 * 60 * 30),
         updatedAt: new Date()
       },
       {
@@ -56,7 +67,7 @@ const HomePage: React.FC = () => {
         description: 'Patient experiencing chest pain and difficulty breathing',
         location: { latitude: 5.9600, longitude: 10.1460 },
         reporter: { id: '2', name: 'Jane Smith' },
-        createdAt: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
+        createdAt: new Date(Date.now() - 1000 * 60 * 15),
         updatedAt: new Date()
       }
     ]);
@@ -96,21 +107,27 @@ const HomePage: React.FC = () => {
       description: 'Report a new emergency situation',
       icon: ExclamationTriangleIcon,
       href: '/report',
-      color: 'bg-emergency-red hover:bg-red-700'
+      color: 'from-emergency-red to-red-600',
+      bgColor: 'bg-gradient-to-br',
+      animation: 'animate-pulse'
     },
     {
       title: 'View Map',
       description: 'See all emergency locations',
       icon: MapIcon,
       href: '/map',
-      color: 'bg-emergency-blue hover:bg-blue-700'
+      color: 'from-emergency-blue to-blue-600',
+      bgColor: 'bg-gradient-to-br',
+      animation: 'animate-bounce'
     },
     {
       title: 'Response Dashboard',
       description: 'Manage emergency responses',
       icon: ChartBarIcon,
       href: '/dashboard',
-      color: 'bg-emergency-green hover:bg-green-700',
+      color: 'from-emergency-green to-green-600',
+      bgColor: 'bg-gradient-to-br',
+      animation: 'animate-ping',
       roles: ['responder', 'admin']
     }
   ];
@@ -119,116 +136,235 @@ const HomePage: React.FC = () => {
     !action.roles || action.roles.includes(user?.role || 'public')
   );
 
+  const systemFeatures = [
+    {
+      icon: SignalIcon,
+      title: 'Real-time Monitoring',
+      description: '24/7 emergency tracking and response coordination',
+      color: 'text-emergency-blue'
+    },
+    {
+      icon: TruckIcon,
+      title: 'Rapid Response',
+      description: 'Quick deployment of emergency services and resources',
+      color: 'text-emergency-orange'
+    },
+    {
+      icon: UserGroupIcon,
+      title: 'Community Safety',
+      description: 'Empowering citizens to report and respond to emergencies',
+      color: 'text-emergency-green'
+    },
+    {
+      icon: WifiIcon,
+      title: 'Smart Connectivity',
+      description: 'Advanced communication systems for seamless coordination',
+      color: 'text-emergency-purple'
+    }
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-emergency-blue to-blue-600 rounded-lg p-6 text-white">
-        <h1 className="text-3xl font-bold mb-2">
-          Welcome back, {user?.name}!
-        </h1>
-        <p className="text-blue-100">
-          Stay informed and help keep our community safe. Report emergencies and track responses in real-time.
-        </p>
+    <div className="space-y-8">
+      {/* Hero Section with Animated Background */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-emergency-blue rounded-2xl p-8 text-white">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 animate-spin-slow">
+            <SignalIcon className="h-16 w-16" />
+          </div>
+          <div className="absolute top-20 right-20 animate-pulse">
+            <ExclamationTriangleIcon className="h-12 w-12" />
+          </div>
+          <div className="absolute bottom-10 left-20 animate-bounce">
+            <ShieldExclamationIcon className="h-10 w-10" />
+          </div>
+          <div className="absolute bottom-20 right-10 animate-ping">
+            <FireIcon className="h-8 w-8" />
+          </div>
+        </div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="flex space-x-1">
+              <div className="w-3 h-3 bg-emergency-red rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-emergency-orange rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
+              <div className="w-3 h-3 bg-emergency-green rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+            </div>
+            <span className="text-sm font-medium text-blue-200">SYSTEM ACTIVE</span>
+          </div>
+          
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+            Emergency Response System
+          </h1>
+          <p className="text-xl text-blue-100 mb-6 max-w-2xl">
+            Advanced humanitarian assistance and predictive management for crisis-prone regions. 
+            Real-time emergency reporting, intelligent response coordination, and community safety.
+          </p>
+          
+          <div className="flex flex-wrap gap-4">
+            <Link
+              to="/report"
+              className="inline-flex items-center px-6 py-3 bg-emergency-red hover:bg-red-700 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
+              Report Emergency
+            </Link>
+            <Link
+              to="/map"
+              className="inline-flex items-center px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 backdrop-blur-sm"
+            >
+              <MapIcon className="h-5 w-5 mr-2" />
+              View Live Map
+            </Link>
+          </div>
+        </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions with Advanced Animations */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {filteredQuickActions.map((action) => {
+        {filteredQuickActions.map((action, index) => {
           const Icon = action.icon;
           return (
             <Link
               key={action.title}
               to={action.href}
-              className={`${action.color} text-white p-6 rounded-lg shadow-sm hover:shadow-md transition-all duration-200`}
+              className={`${action.bgColor} ${action.color} text-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 group relative overflow-hidden`}
+              style={{animationDelay: `${index * 0.1}s`}}
             >
-              <Icon className="h-8 w-8 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">{action.title}</h3>
-              <p className="text-sm opacity-90">{action.description}</p>
+              {/* Animated background pattern */}
+              <div className="absolute inset-0 opacity-10">
+                <div className={`absolute top-4 right-4 ${action.animation}`}>
+                  <Icon className="h-12 w-12" />
+                </div>
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <Icon className="h-10 w-10 group-hover:scale-110 transition-transform duration-300" />
+                  <ArrowRightIcon className="h-5 w-5 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">{action.title}</h3>
+                <p className="text-sm opacity-90">{action.description}</p>
+              </div>
             </Link>
           );
         })}
       </div>
 
-      {/* Statistics */}
+      {/* Live Statistics with Animated Counters */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="card">
-          <div className="flex items-center">
-            <div className="p-2 bg-emergency-red rounded-lg">
-              <ExclamationTriangleIcon className="h-6 w-6 text-white" />
+        <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border-l-4 border-emergency-red">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Emergencies</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.totalEmergencies}</p>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Emergencies</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalEmergencies}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center">
-            <div className="p-2 bg-emergency-orange rounded-lg">
-              <ClockIcon className="h-6 w-6 text-white" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Emergencies</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.activeEmergencies}</p>
+            <div className="p-3 bg-emergency-red rounded-lg">
+              <ExclamationTriangleIcon className="h-8 w-8 text-white animate-pulse" />
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="p-2 bg-emergency-green rounded-lg">
-              <CheckCircleIcon className="h-6 w-6 text-white" />
+        <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border-l-4 border-emergency-orange">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Active Emergencies</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.activeEmergencies}</p>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Resolved Today</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.resolvedToday}</p>
+            <div className="p-3 bg-emergency-orange rounded-lg">
+              <ClockIcon className="h-8 w-8 text-white animate-spin" />
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="p-2 bg-emergency-blue rounded-lg">
-              <BoltIcon className="h-6 w-6 text-white" />
+        <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border-l-4 border-emergency-green">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Resolved Today</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.resolvedToday}</p>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Avg Response Time</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.averageResponseTime}m</p>
+            <div className="p-3 bg-emergency-green rounded-lg">
+              <CheckCircleIcon className="h-8 w-8 text-white animate-bounce" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border-l-4 border-emergency-blue">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Avg Response Time</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.averageResponseTime}m</p>
+            </div>
+            <div className="p-3 bg-emergency-blue rounded-lg">
+              <BoltIcon className="h-8 w-8 text-white animate-ping" />
             </div>
           </div>
         </div>
       </div>
 
+      {/* System Features */}
+      <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-8">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Advanced System Features</h2>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Our comprehensive emergency response platform combines cutting-edge technology 
+            with humanitarian expertise to protect communities in crisis-prone regions.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {systemFeatures.map((feature, index) => {
+            const Icon = feature.icon;
+            return (
+              <div 
+                key={feature.title}
+                className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-center group"
+                style={{animationDelay: `${index * 0.1}s`}}
+              >
+                <div className={`inline-flex p-4 rounded-full bg-gray-100 group-hover:bg-blue-50 transition-colors duration-300 mb-4`}>
+                  <Icon className={`h-8 w-8 ${feature.color} group-hover:scale-110 transition-transform duration-300`} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-sm text-gray-600">{feature.description}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Recent Emergencies */}
-      <div className="card">
+      <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Recent Emergencies</h2>
-          <Link to="/map" className="text-emergency-blue hover:text-blue-700 text-sm font-medium">
-            View all →
+          <h2 className="text-2xl font-bold text-gray-900">Recent Emergencies</h2>
+          <Link 
+            to="/map" 
+            className="text-emergency-blue hover:text-blue-700 font-medium flex items-center"
+          >
+            View All
+            <ArrowRightIcon className="h-4 w-4 ml-1" />
           </Link>
         </div>
-
+        
         <div className="space-y-4">
           {recentEmergencies.map((emergency) => (
-            <div key={emergency.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-3">
-                  {getEmergencyIcon(emergency.type)}
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="font-medium text-gray-900">{emergency.title}</h3>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(emergency.priority)}`}>
-                        {emergency.priority}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">{emergency.description}</p>
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      <span>Reported by {emergency.reporter.name}</span>
-                      <span>•</span>
-                      <span>{new Date(emergency.createdAt).toLocaleTimeString()}</span>
-                    </div>
-                  </div>
+            <div 
+              key={emergency.id}
+              className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+            >
+              <div className="flex-shrink-0 mr-4">
+                {getEmergencyIcon(emergency.type)}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">{emergency.title}</h3>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(emergency.priority)}`}>
+                    {emergency.priority}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 mt-1">{emergency.description}</p>
+                <div className="flex items-center text-xs text-gray-500 mt-2">
+                  <ClockIcon className="h-4 w-4 mr-1" />
+                  {Math.round((Date.now() - emergency.createdAt.getTime()) / (1000 * 60))} minutes ago
                 </div>
               </div>
             </div>
@@ -236,37 +372,17 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Emergency Contacts */}
-      <div className="card">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Emergency Contacts</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-center space-x-3 p-3 bg-red-50 rounded-lg">
-            <PhoneIcon className="h-5 w-5 text-emergency-red" />
-            <div>
-              <p className="font-medium text-gray-900">Fire Department</p>
-              <p className="text-sm text-gray-600">+237 XXX XXX XXX</p>
-            </div>
+      {/* Status Indicator */}
+      <div className="bg-gradient-to-r from-emergency-green to-green-600 rounded-xl p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+            <span className="font-semibold">System Status: Operational</span>
           </div>
-          <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-            <PhoneIcon className="h-5 w-5 text-emergency-blue" />
-            <div>
-              <p className="font-medium text-gray-900">Police</p>
-              <p className="text-sm text-gray-600">+237 XXX XXX XXX</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-            <PhoneIcon className="h-5 w-5 text-emergency-green" />
-            <div>
-              <p className="font-medium text-gray-900">Ambulance</p>
-              <p className="text-sm text-gray-600">+237 XXX XXX XXX</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg">
-            <PhoneIcon className="h-5 w-5 text-emergency-orange" />
-            <div>
-              <p className="font-medium text-gray-900">Emergency Hotline</p>
-              <p className="text-sm text-gray-600">+237 XXX XXX XXX</p>
-            </div>
+          <div className="flex items-center space-x-4 text-sm">
+            <span>Response Teams: Active</span>
+            <span>Communication: Stable</span>
+            <span>GPS Tracking: Online</span>
           </div>
         </div>
       </div>
