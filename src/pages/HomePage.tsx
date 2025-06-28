@@ -23,11 +23,12 @@ import {
   PauseIcon,
   StopIcon
 } from '@heroicons/react/24/outline';
-import { EmergencyReport, EmergencyType, EmergencyPriority } from '../types';
+import { EmergencyType, EmergencyPriority } from '../types';
+import { getEmergencyReports, EmergencyReportWithId } from '../services/emergencyService';
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
-  const [recentEmergencies, setRecentEmergencies] = useState<EmergencyReport[]>([]);
+  const [recentEmergencies, setRecentEmergencies] = useState<EmergencyReportWithId[]>([]);
   const [stats, setStats] = useState({
     totalEmergencies: 0,
     activeEmergencies: 0,
@@ -36,41 +37,39 @@ const HomePage: React.FC = () => {
   });
   const [isAnimating, setIsAnimating] = useState(true);
 
-  // Mock data for demonstration
   useEffect(() => {
-    setStats({
-      totalEmergencies: 156,
-      activeEmergencies: 8,
-      resolvedToday: 12,
-      averageResponseTime: 4.2
-    });
+    const fetchData = async () => {
+      try {
+        const reports = await getEmergencyReports();
+        
+        // Calculate stats from real data
+        const totalEmergencies = reports.length;
+        const activeEmergencies = reports.filter(r => 
+          r.status === 'reported' || r.status === 'acknowledged' || r.status === 'responding'
+        ).length;
+        
+        // Get today's resolved emergencies
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const resolvedToday = reports.filter(r => 
+          r.status === 'resolved' && r.resolvedAt && r.resolvedAt >= today
+        ).length;
 
-    setRecentEmergencies([
-      {
-        id: '1',
-        type: EmergencyType.FIRE,
-        priority: EmergencyPriority.HIGH,
-        status: 'reported' as any,
-        title: 'Fire outbreak in Bamenda Central',
-        description: 'Large fire reported in commercial district',
-        location: { latitude: 5.9597, longitude: 10.1459 },
-        reporter: { id: '1', name: 'John Doe' },
-        createdAt: new Date(Date.now() - 1000 * 60 * 30),
-        updatedAt: new Date()
-      },
-      {
-        id: '2',
-        type: EmergencyType.MEDICAL,
-        priority: EmergencyPriority.CRITICAL,
-        status: 'responding' as any,
-        title: 'Medical emergency - Heart attack',
-        description: 'Patient experiencing chest pain and difficulty breathing',
-        location: { latitude: 5.9600, longitude: 10.1460 },
-        reporter: { id: '2', name: 'Jane Smith' },
-        createdAt: new Date(Date.now() - 1000 * 60 * 15),
-        updatedAt: new Date()
+        setStats({
+          totalEmergencies,
+          activeEmergencies,
+          resolvedToday,
+          averageResponseTime: 4.2 // This would need more complex calculation
+        });
+
+        // Get recent emergencies (last 5)
+        setRecentEmergencies(reports.slice(0, 5));
+      } catch (error) {
+        console.error('Error fetching data:', error);
       }
-    ]);
+    };
+
+    fetchData();
   }, []);
 
   const getEmergencyIcon = (type: EmergencyType) => {

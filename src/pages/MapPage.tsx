@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { ExclamationTriangleIcon, FireIcon, HeartIcon, ShieldExclamationIcon } from '@heroicons/react/24/outline';
-import { EmergencyReport, EmergencyType } from '../types';
+import { ExclamationTriangleIcon, FireIcon, HeartIcon, ShieldExclamationIcon, CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { EmergencyType } from '../types';
+import { getEmergencyReports, EmergencyReportWithId } from '../services/emergencyService';
+import { useLocation } from 'react-router-dom';
 
 // Fix for default markers in react-leaflet
 delete (Icon.Default.prototype as any)._getIconUrl;
@@ -14,39 +16,64 @@ Icon.Default.mergeOptions({
 });
 
 const MapPage: React.FC = () => {
-  const [emergencies, setEmergencies] = useState<EmergencyReport[]>([]);
+  const [emergencies, setEmergencies] = useState<EmergencyReportWithId[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const location = useLocation();
+  const mapRef = useRef<any>(null);
 
-  // Mock data for demonstration
   useEffect(() => {
-    setEmergencies([
-      {
-        id: '1',
-        type: EmergencyType.FIRE,
-        priority: 'high' as any,
-        status: 'reported' as any,
-        title: 'Fire outbreak in Bamenda Central',
-        description: 'Large fire reported in commercial district',
-        location: { latitude: 5.9597, longitude: 10.1459 },
-        reporter: { id: '1', name: 'John Doe' },
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: '2',
-        type: EmergencyType.MEDICAL,
-        priority: 'critical' as any,
-        status: 'responding' as any,
-        title: 'Medical emergency - Heart attack',
-        description: 'Patient experiencing chest pain and difficulty breathing',
-        location: { latitude: 5.9600, longitude: 10.1460 },
-        reporter: { id: '2', name: 'Jane Smith' },
-        createdAt: new Date(),
-        updatedAt: new Date()
+    // Check if user was redirected from emergency report
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      setShowSuccessMessage(true);
+      // Clear the state to prevent showing message on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    const fetchEmergencies = async () => {
+      try {
+        const reports = await getEmergencyReports();
+        setEmergencies(reports);
+      } catch (error) {
+        console.error('Error fetching emergencies:', error);
+      } finally {
+        setLoading(false);
       }
-    ]);
-    setLoading(false);
+    };
+
+    fetchEmergencies();
   }, []);
+
+  // Function to fit map bounds to show all emergencies
+  const fitMapToEmergencies = () => {
+    if (mapRef.current && emergencies.length > 0) {
+      const map = mapRef.current;
+      
+      // Create bounds from emergency locations
+      const bounds = emergencies.map(emergency => [
+        emergency.location.latitude,
+        emergency.location.longitude
+      ]);
+      
+      // Fit the map to show all emergencies
+      map.fitBounds(bounds, {
+        padding: [20, 20], // Add some padding around the bounds
+        maxZoom: 15 // Limit maximum zoom to prevent too much zoom
+      });
+    }
+  };
+
+  // Fit map when emergencies are loaded
+  useEffect(() => {
+    if (!loading && emergencies.length > 0) {
+      // Small delay to ensure map is fully rendered
+      setTimeout(fitMapToEmergencies, 100);
+    }
+  }, [emergencies, loading]);
 
   const getEmergencyIcon = (type: EmergencyType) => {
     switch (type) {
@@ -86,21 +113,50 @@ const MapPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <CheckCircleIcon className="h-6 w-6 text-green-600" />
+              <p className="text-green-800 font-medium">{successMessage}</p>
+            </div>
+            <button
+              onClick={() => setShowSuccessMessage(false)}
+              className="text-green-600 hover:text-green-800"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Emergency Map</h1>
           <p className="text-gray-600">View all reported emergencies in real-time</p>
         </div>
-        <div className="text-sm text-gray-500">
-          {emergencies.length} active emergencies
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-500">
+            {emergencies.length} active emergencies
+          </div>
+          {emergencies.length > 0 && (
+            <button
+              onClick={fitMapToEmergencies}
+              className="px-3 py-1 text-sm bg-emergency-blue text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Show All Emergencies
+            </button>
+          )}
         </div>
       </div>
 
       <div className="card p-0 overflow-hidden">
         <div className="h-96 w-full">
           <MapContainer
-            center={[5.9597, 10.1459]}
-            zoom={13}
+            ref={mapRef}
+            center={[5.9597, 10.1459]} // Default center (Bamenda, Cameroon)
+            zoom={10} // Default zoom level
             style={{ height: '100%', width: '100%' }}
           >
             <TileLayer

@@ -9,11 +9,13 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { EmergencyType, EmergencyPriority } from '../types';
+import { createEmergencyReport } from '../services/emergencyService';
 
 const EmergencyReportPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   
@@ -138,26 +140,74 @@ const EmergencyReportPage: React.FC = () => {
       return;
     }
 
+    if (!user) {
+      setErrors(prev => ({ ...prev, submit: 'You must be logged in to report an emergency.' }));
+      return;
+    }
+
     setLoading(true);
+    setUploadProgress('Preparing to submit emergency report...');
     
     try {
-      // Here you would typically upload images to Firebase Storage
-      // and save the emergency report to Firestore
+      // Add timeout to prevent infinite loading (reduced to 20 seconds)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout - please check your internet connection and try again')), 20000);
+      });
+
+      // Save emergency report to Firebase
+      const reportData = {
+        type: formData.type,
+        priority: formData.priority,
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        phone: formData.phone,
+        images: images
+      };
+
+      setUploadProgress('Uploading images and saving report...');
+      const emergencyPromise = createEmergencyReport(reportData, user.id, user.name);
       
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Race between the emergency report creation and timeout
+      const emergencyId = await Promise.race([emergencyPromise, timeoutPromise]) as string;
+      
+      setUploadProgress('Emergency report submitted successfully!');
+      console.log('Emergency report created with ID:', emergencyId);
       
       // Navigate to map to see the report
       navigate('/map', { 
         state: { 
-          message: 'Emergency reported successfully! Response teams have been notified.' 
+          message: 'Emergency reported successfully! Response teams have been notified.',
+          emergencyId: emergencyId
         } 
       });
     } catch (error) {
       console.error('Error submitting report:', error);
-      setErrors(prev => ({ ...prev, submit: 'Failed to submit report. Please try again.' }));
+      let errorMessage = 'Failed to submit report. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please check your internet connection and try again.';
+        } else if (error.message.includes('permission')) {
+          errorMessage = 'Permission denied. Please check your Firebase configuration.';
+        } else if (error.message.includes('storage')) {
+          errorMessage = 'Image upload failed. Please try without images or check your connection.';
+        } else if (error.message.includes('Firestore timeout')) {
+          errorMessage = 'Database connection timed out. Please check your internet connection.';
+        } else if (error.message.includes('Image upload timeout')) {
+          errorMessage = 'Image upload is taking too long. Please try with smaller images or without images.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setErrors(prev => ({ 
+        ...prev, 
+        submit: errorMessage
+      }));
     } finally {
       setLoading(false);
+      setUploadProgress('');
     }
   };
 
@@ -340,6 +390,18 @@ const EmergencyReportPage: React.FC = () => {
                 <span className="text-gray-700">Upload Photos (Max 5)</span>
               </label>
               
+              {/* Image upload tips */}
+              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                <p className="font-medium mb-1">📸 Image Upload Tips:</p>
+                <ul className="space-y-1">
+                  <li>• Maximum file size: 5MB per image (for faster uploads)</li>
+                  <li>• Supported formats: JPG, PNG, GIF</li>
+                  <li>• Ensure stable internet connection for uploads</li>
+                  <li>• Smaller images upload faster and more reliably</li>
+                  <li>• You can submit without images if upload fails</li>
+                </ul>
+              </div>
+              
               {imagePreview.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {imagePreview.map((preview, index) => (
@@ -380,7 +442,10 @@ const EmergencyReportPage: React.FC = () => {
               className="flex-1 btn-danger flex items-center justify-center space-x-2"
             >
               {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>{uploadProgress || 'Submitting...'}</span>
+                </>
               ) : (
                 <>
                   <PaperAirplaneIcon className="h-5 w-5" />
@@ -393,6 +458,52 @@ const EmergencyReportPage: React.FC = () => {
           {errors.submit && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-600">{errors.submit}</p>
+              
+              {/* Specific guidance for timeout errors */}
+              {errors.submit.includes('timeout') && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-sm text-yellow-800 font-medium mb-2">🔧 Troubleshooting Tips:</p>
+                  <ul className="text-sm text-yellow-700 space-y-1">
+                    <li>• Check your internet connection</li>
+                    <li>• Try submitting without images first</li>
+                    <li>• Use smaller image files (under 1MB)</li>
+                    <li>• Try again in a few minutes</li>
+                  </ul>
+                </div>
+              )}
+              
+              {/* Options for image upload issues */}
+              {(errors.submit.includes('Image upload failed') || errors.submit.includes('timeout')) && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm text-red-600">
+                    Quick solutions:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setImages([]);
+                        setImagePreview([]);
+                        setErrors(prev => ({ ...prev, submit: '' }));
+                        setUploadProgress('Images removed. You can now submit without images.');
+                      }}
+                      className="px-3 py-1 text-sm bg-emergency-blue text-white rounded hover:bg-blue-700 transition-colors"
+                    >
+                      Submit Without Images
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setErrors(prev => ({ ...prev, submit: '' }));
+                        setUploadProgress('Retrying submission...');
+                      }}
+                      className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </form>

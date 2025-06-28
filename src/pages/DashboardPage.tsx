@@ -8,29 +8,26 @@ import {
   HeartIcon,
   ShieldExclamationIcon
 } from '@heroicons/react/24/outline';
-import { EmergencyReport, EmergencyType } from '../types';
+import { EmergencyType } from '../types';
+import { getEmergencyReports, EmergencyReportWithId } from '../services/emergencyService';
 
 const DashboardPage: React.FC = () => {
-  const [emergencies, setEmergencies] = useState<EmergencyReport[]>([]);
+  const [emergencies, setEmergencies] = useState<EmergencyReportWithId[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mock data
-    setEmergencies([
-      {
-        id: '1',
-        type: EmergencyType.FIRE,
-        priority: 'high' as any,
-        status: 'responding' as any,
-        title: 'Fire outbreak in Bamenda Central',
-        description: 'Large fire reported in commercial district',
-        location: { latitude: 5.9597, longitude: 10.1459 },
-        reporter: { id: '1', name: 'John Doe' },
-        createdAt: new Date(),
-        updatedAt: new Date()
+    const fetchEmergencies = async () => {
+      try {
+        const reports = await getEmergencyReports();
+        setEmergencies(reports);
+      } catch (error) {
+        console.error('Error fetching emergencies:', error);
+      } finally {
+        setLoading(false);
       }
-    ]);
-    setLoading(false);
+    };
+
+    fetchEmergencies();
   }, []);
 
   const getEmergencyIcon = (type: EmergencyType) => {
