@@ -129,6 +129,17 @@ const EmergencyReportPage: React.FC = () => {
       newErrors.location = 'Location is required';
     }
 
+    // Phone number validation
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required for emergency response';
+    } else {
+      // Basic phone number validation - should contain at least 10 digits
+      const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+      if (!phoneRegex.test(formData.phone.trim())) {
+        newErrors.phone = 'Please enter a valid phone number (at least 10 digits)';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -355,17 +366,25 @@ const EmergencyReportPage: React.FC = () => {
           {/* Contact Phone */}
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-              Contact Phone Number
+              Contact Phone Number *
             </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emergency-blue focus:border-transparent"
-              placeholder="+237 XXX XXX XXX"
-            />
+            <div className="space-y-2">
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emergency-blue focus:border-transparent ${
+                  errors.phone ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="+237 XXX XXX XXX"
+              />
+              <p className="text-xs text-gray-500">
+                📞 Required for emergency responders to contact you for additional information
+              </p>
+              {errors.phone && <p className="text-sm text-red-600">{errors.phone}</p>}
+            </div>
           </div>
 
           {/* Image Upload */}

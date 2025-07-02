@@ -45,8 +45,23 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    // Phone number validation
+    if (!formData.phone.trim()) {
+      setError('Phone number is required for emergency response communication');
+      setLoading(false);
+      return;
+    }
+
+    // Basic phone number validation - should contain at least 10 digits
+    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+    if (!phoneRegex.test(formData.phone.trim())) {
+      setError('Please enter a valid phone number (at least 10 digits)');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await register(formData.email, formData.password, formData.name, formData.role);
+      await register(formData.email, formData.password, formData.name, formData.role, formData.phone);
       navigate('/');
     } catch (error: any) {
       setError(error.message || 'Failed to create account. Please try again.');
@@ -114,18 +129,22 @@ const RegisterPage: React.FC = () => {
 
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                Phone Number (Optional)
+                Phone Number *
               </label>
               <input
                 id="phone"
                 name="phone"
                 type="tel"
                 autoComplete="tel"
+                required
                 value={formData.phone}
                 onChange={handleInputChange}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-emergency-blue focus:border-emergency-blue focus:z-10 sm:text-sm"
                 placeholder="+237 XXX XXX XXX"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                📞 Required for emergency response communication
+              </p>
             </div>
 
             <div>

@@ -8,11 +8,13 @@ import {
   doc, 
   updateDoc,
   serverTimestamp,
-  Timestamp 
+  Timestamp,
+  getDoc
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
 import { EmergencyReport, EmergencyStatus } from '../types';
+import { createEmergencyActionNotification } from './notificationService';
 
 export interface CreateEmergencyReportData {
   type: string;
@@ -24,7 +26,7 @@ export interface CreateEmergencyReportData {
     longitude: number;
     address?: string;
   };
-  phone?: string;
+  phone: string; // Required for emergency response
   images?: File[];
 }
 
@@ -239,10 +241,35 @@ export const getEmergencyReports = async (): Promise<EmergencyReportWithId[]> =>
         images: data.images || [],
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
-        acknowledgedBy: data.acknowledgedBy,
-        resolvedBy: data.resolvedBy,
+        acknowledgedBy: data.acknowledgedBy ? {
+          id: data.acknowledgedBy.id,
+          name: data.acknowledgedBy.name,
+          timestamp: data.acknowledgedBy.timestamp?.toDate() || new Date()
+        } : undefined,
+        respondedBy: data.respondedBy ? {
+          id: data.respondedBy.id,
+          name: data.respondedBy.name,
+          timestamp: data.respondedBy.timestamp?.toDate() || new Date()
+        } : undefined,
+        resolvedBy: data.resolvedBy ? {
+          id: data.resolvedBy.id,
+          name: data.resolvedBy.name,
+          timestamp: data.resolvedBy.timestamp?.toDate() || new Date()
+        } : undefined,
         resolvedAt: data.resolvedAt?.toDate(),
-        notes: data.notes || []
+        closedBy: data.closedBy ? {
+          id: data.closedBy.id,
+          name: data.closedBy.name,
+          timestamp: data.closedBy.timestamp?.toDate() || new Date()
+        } : undefined,
+        closedAt: data.closedAt?.toDate(),
+        notes: data.notes ? data.notes.map((note: any) => ({
+          text: note.text,
+          userId: note.userId,
+          userName: note.userName,
+          timestamp: note.timestamp?.toDate() || new Date(),
+          action: note.action
+        })) : []
       });
     });
     
@@ -283,10 +310,35 @@ export const getEmergencyReportsByStatus = async (status: EmergencyStatus): Prom
         images: data.images || [],
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
-        acknowledgedBy: data.acknowledgedBy,
-        resolvedBy: data.resolvedBy,
+        acknowledgedBy: data.acknowledgedBy ? {
+          id: data.acknowledgedBy.id,
+          name: data.acknowledgedBy.name,
+          timestamp: data.acknowledgedBy.timestamp?.toDate() || new Date()
+        } : undefined,
+        respondedBy: data.respondedBy ? {
+          id: data.respondedBy.id,
+          name: data.respondedBy.name,
+          timestamp: data.respondedBy.timestamp?.toDate() || new Date()
+        } : undefined,
+        resolvedBy: data.resolvedBy ? {
+          id: data.resolvedBy.id,
+          name: data.resolvedBy.name,
+          timestamp: data.resolvedBy.timestamp?.toDate() || new Date()
+        } : undefined,
         resolvedAt: data.resolvedAt?.toDate(),
-        notes: data.notes || []
+        closedBy: data.closedBy ? {
+          id: data.closedBy.id,
+          name: data.closedBy.name,
+          timestamp: data.closedBy.timestamp?.toDate() || new Date()
+        } : undefined,
+        closedAt: data.closedAt?.toDate(),
+        notes: data.notes ? data.notes.map((note: any) => ({
+          text: note.text,
+          userId: note.userId,
+          userName: note.userName,
+          timestamp: note.timestamp?.toDate() || new Date(),
+          action: note.action
+        })) : []
       });
     });
     
@@ -332,5 +384,254 @@ export const updateEmergencyStatus = async (
   } catch (error) {
     console.error('Error updating emergency status:', error);
     throw new Error('Failed to update emergency status');
+  }
+};
+
+// Respond to an emergency (change status to responding)
+export const respondToEmergency = async (
+  emergencyId: string,
+  userId: string,
+  userName: string,
+  notes?: string
+): Promise<void> => {
+  try {
+    console.log(`Responding to emergency ${emergencyId} by user ${userName}`);
+    
+    const emergencyRef = doc(db, 'emergencies', emergencyId);
+    
+    // Get current emergency data to validate status
+    const emergencyDoc = await getDoc(emergencyRef);
+    if (!emergencyDoc.exists()) {
+      throw new Error('Emergency not found');
+    }
+    
+    const currentData = emergencyDoc.data();
+    const currentStatus = currentData.status;
+    
+    // Validate status transition
+    if (currentStatus !== EmergencyStatus.REPORTED && currentStatus !== EmergencyStatus.ACKNOWLEDGED) {
+      throw new Error(`Cannot respond to emergency with status: ${currentStatus}`);
+    }
+    
+    const updateData: any = {
+      status: EmergencyStatus.RESPONDING,
+      updatedAt: serverTimestamp(),
+      respondedBy: {
+        id: userId,
+        name: userName,
+        timestamp: serverTimestamp()
+      }
+    };
+
+    // Add notes if provided
+    if (notes) {
+      updateData.notes = [...(currentData.notes || []), {
+        text: notes,
+        userId,
+        userName,
+        timestamp: serverTimestamp(),
+        action: 'respond'
+      }];
+    }
+
+    await updateDoc(emergencyRef, updateData);
+    console.log(`Successfully responded to emergency ${emergencyId}`);
+    
+    // Create notification for the reporter
+    await createEmergencyActionNotification(
+      emergencyId,
+      currentData.title,
+      'responded',
+      userName,
+      currentData.reporter.id
+    );
+  } catch (error) {
+    console.error('Error responding to emergency:', error);
+    throw new Error('Failed to respond to emergency');
+  }
+};
+
+// Resolve an emergency (change status to resolved)
+export const resolveEmergency = async (
+  emergencyId: string,
+  userId: string,
+  userName: string,
+  resolutionNotes?: string
+): Promise<void> => {
+  try {
+    console.log(`Resolving emergency ${emergencyId} by user ${userName}`);
+    
+    const emergencyRef = doc(db, 'emergencies', emergencyId);
+    
+    // Get current emergency data to validate status
+    const emergencyDoc = await getDoc(emergencyRef);
+    if (!emergencyDoc.exists()) {
+      throw new Error('Emergency not found');
+    }
+    
+    const currentData = emergencyDoc.data();
+    const currentStatus = currentData.status;
+    
+    // Validate status transition - can only resolve from responding or acknowledged
+    if (currentStatus !== EmergencyStatus.RESPONDING && currentStatus !== EmergencyStatus.ACKNOWLEDGED) {
+      throw new Error(`Cannot resolve emergency with status: ${currentStatus}`);
+    }
+    
+    const updateData: any = {
+      status: EmergencyStatus.RESOLVED,
+      updatedAt: serverTimestamp(),
+      resolvedBy: {
+        id: userId,
+        name: userName,
+        timestamp: serverTimestamp()
+      },
+      resolvedAt: serverTimestamp()
+    };
+
+    // Add resolution notes
+    if (resolutionNotes) {
+      updateData.notes = [...(currentData.notes || []), {
+        text: resolutionNotes,
+        userId,
+        userName,
+        timestamp: serverTimestamp(),
+        action: 'resolve'
+      }];
+    }
+
+    await updateDoc(emergencyRef, updateData);
+    console.log(`Successfully resolved emergency ${emergencyId}`);
+    
+    // Create notification for the reporter
+    await createEmergencyActionNotification(
+      emergencyId,
+      currentData.title,
+      'resolved',
+      userName,
+      currentData.reporter.id
+    );
+  } catch (error) {
+    console.error('Error resolving emergency:', error);
+    throw new Error('Failed to resolve emergency');
+  }
+};
+
+// Acknowledge an emergency (change status to acknowledged)
+export const acknowledgeEmergency = async (
+  emergencyId: string,
+  userId: string,
+  userName: string,
+  notes?: string
+): Promise<void> => {
+  try {
+    console.log(`Acknowledging emergency ${emergencyId} by user ${userName}`);
+    
+    const emergencyRef = doc(db, 'emergencies', emergencyId);
+    
+    // Get current emergency data to validate status
+    const emergencyDoc = await getDoc(emergencyRef);
+    if (!emergencyDoc.exists()) {
+      throw new Error('Emergency not found');
+    }
+    
+    const currentData = emergencyDoc.data();
+    const currentStatus = currentData.status;
+    
+    // Validate status transition - can only acknowledge from reported
+    if (currentStatus !== EmergencyStatus.REPORTED) {
+      throw new Error(`Cannot acknowledge emergency with status: ${currentStatus}`);
+    }
+    
+    const updateData: any = {
+      status: EmergencyStatus.ACKNOWLEDGED,
+      updatedAt: serverTimestamp(),
+      acknowledgedBy: {
+        id: userId,
+        name: userName,
+        timestamp: serverTimestamp()
+      }
+    };
+
+    // Add notes if provided
+    if (notes) {
+      updateData.notes = [...(currentData.notes || []), {
+        text: notes,
+        userId,
+        userName,
+        timestamp: serverTimestamp(),
+        action: 'acknowledge'
+      }];
+    }
+
+    await updateDoc(emergencyRef, updateData);
+    console.log(`Successfully acknowledged emergency ${emergencyId}`);
+    
+    // Create notification for the reporter
+    await createEmergencyActionNotification(
+      emergencyId,
+      currentData.title,
+      'acknowledged',
+      userName,
+      currentData.reporter.id
+    );
+  } catch (error) {
+    console.error('Error acknowledging emergency:', error);
+    throw new Error('Failed to acknowledge emergency');
+  }
+};
+
+// Close an emergency (change status to closed)
+export const closeEmergency = async (
+  emergencyId: string,
+  userId: string,
+  userName: string,
+  notes?: string
+): Promise<void> => {
+  try {
+    console.log(`Closing emergency ${emergencyId} by user ${userName}`);
+    
+    const emergencyRef = doc(db, 'emergencies', emergencyId);
+    
+    // Get current emergency data to validate status
+    const emergencyDoc = await getDoc(emergencyRef);
+    if (!emergencyDoc.exists()) {
+      throw new Error('Emergency not found');
+    }
+    
+    const currentData = emergencyDoc.data();
+    const currentStatus = currentData.status;
+    
+    // Validate status transition - can only close from resolved
+    if (currentStatus !== EmergencyStatus.RESOLVED) {
+      throw new Error(`Cannot close emergency with status: ${currentStatus}`);
+    }
+    
+    const updateData: any = {
+      status: EmergencyStatus.CLOSED,
+      updatedAt: serverTimestamp(),
+      closedBy: {
+        id: userId,
+        name: userName,
+        timestamp: serverTimestamp()
+      },
+      closedAt: serverTimestamp()
+    };
+
+    // Add notes if provided
+    if (notes) {
+      updateData.notes = [...(currentData.notes || []), {
+        text: notes,
+        userId,
+        userName,
+        timestamp: serverTimestamp(),
+        action: 'close'
+      }];
+    }
+
+    await updateDoc(emergencyRef, updateData);
+    console.log(`Successfully closed emergency ${emergencyId}`);
+  } catch (error) {
+    console.error('Error closing emergency:', error);
+    throw new Error('Failed to close emergency');
   }
 }; 

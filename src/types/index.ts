@@ -3,7 +3,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  phone?: string;
+  phone: string; // Required for emergency response
   location?: {
     latitude: number;
     longitude: number;
@@ -59,15 +59,40 @@ export interface EmergencyReport {
   reporter: {
     id: string;
     name: string;
-    phone?: string;
+    phone: string; // Required for emergency response
   };
   images?: string[];
   createdAt: Date;
   updatedAt: Date;
-  acknowledgedBy?: string;
-  resolvedBy?: string;
+  acknowledgedBy?: {
+    id: string;
+    name: string;
+    timestamp: Date;
+  };
+  respondedBy?: {
+    id: string;
+    name: string;
+    timestamp: Date;
+  };
+  resolvedBy?: {
+    id: string;
+    name: string;
+    timestamp: Date;
+  };
   resolvedAt?: Date;
-  notes?: string[];
+  closedBy?: {
+    id: string;
+    name: string;
+    timestamp: Date;
+  };
+  closedAt?: Date;
+  notes?: Array<{
+    text: string;
+    userId: string;
+    userName: string;
+    timestamp: Date;
+    action?: string;
+  }>;
 }
 
 export interface EmergencyResponse {

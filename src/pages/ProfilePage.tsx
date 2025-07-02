@@ -21,6 +21,19 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleSave = async () => {
+    // Validate phone number
+    if (!formData.phone.trim()) {
+      alert('Phone number is required for emergency response communication');
+      return;
+    }
+
+    // Basic phone number validation
+    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+    if (!phoneRegex.test(formData.phone.trim())) {
+      alert('Please enter a valid phone number (at least 10 digits)');
+      return;
+    }
+
     setLoading(true);
     try {
       await updateUserProfile({
@@ -97,19 +110,32 @@ const ProfilePage: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
+                  Phone Number *
                 </label>
                 {editing ? (
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emergency-blue focus:border-transparent"
-                    placeholder="+237 XXX XXX XXX"
-                  />
+                  <div className="space-y-2">
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emergency-blue focus:border-transparent"
+                      placeholder="+237 XXX XXX XXX"
+                      required
+                    />
+                    <p className="text-xs text-gray-500">
+                      📞 Required for emergency response communication
+                    </p>
+                  </div>
                 ) : (
-                  <p className="text-gray-900">{user.phone || 'Not provided'}</p>
+                  <div>
+                    <p className="text-gray-900">{user.phone || 'Not provided'}</p>
+                    {!user.phone && (
+                      <p className="text-sm text-red-600 mt-1">
+                        ⚠️ Phone number is required for emergency response
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNotifications } from '../../contexts/NotificationContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import { 
   BellIcon, 
   ExclamationTriangleIcon,
@@ -12,7 +12,6 @@ import {
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
-  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -56,11 +55,6 @@ const Navbar: React.FC = () => {
             {/* Notifications */}
             <button className="relative p-2 text-gray-600 hover:text-gray-900">
               <BellIcon className="h-6 w-6" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-emergency-red text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
             </button>
 
             {/* User menu */}
